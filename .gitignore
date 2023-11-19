@@ -1,1 +1,4 @@
 dataset
+hand_landmarks.json
+utils/__pycache__
+model/__pycache__

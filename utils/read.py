@@ -1,5 +1,17 @@
+import json
 import pandas as pd
 from sklearn.model_selection import train_test_split
+
+
+def read_landmarks(json_file_path):
+    """
+    Read landmarks from json file.
+    :param json_file_path: json file path
+    :return: landmarks list
+    """
+    with open(json_file_path) as f:
+        data = json.load(f)
+    return data
 
 
 def read_df(file_path):
