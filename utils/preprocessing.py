@@ -26,14 +26,13 @@ def dimension_scaling(features):
 class DimensionReduction:
 
     @staticmethod
-    def dimension_reduction(n_component, features):
+    def pca(n_component, features):
         """
         :param n_component: number of dimension after reduction
         :param features: numpy.array: shape: (number of features, feature dimension)
         :return:
         """
-        pca = PCA(n_component)
-        projected = pca.fit_transform(features)
+        projected = PCA(n_component).fit_transform(features)
         return projected
 
     @staticmethod
@@ -71,7 +70,8 @@ class DimensionReduction:
 if __name__ == "__main__":
     train_features, train_labels = read_features_labels('../dataset/sign_mnist_train.csv')
     train_features = np.array(train_features)
-    projected = DimensionReduction.dimension_reduction(n_component=57, features=train_features)
+    DimensionReduction.choose_n_component()
+    projected = DimensionReduction.pca(n_component=57, features=train_features)
     DimensionReduction.visualize_top_2_dimension(projected, train_labels)
 
 
