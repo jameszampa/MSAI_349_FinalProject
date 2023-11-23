@@ -1,8 +1,6 @@
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-from utils.read import read_features_labels
 
 
 def dimension_scaling(features):
@@ -28,51 +26,36 @@ class DimensionReduction:
     @staticmethod
     def pca(n_component, features):
         """
-        :param n_component: number of dimension after reduction
-        :param features: numpy.array: shape: (number of features, feature dimension)
+        :param n_component: number of dimension after reduction,
+        :param features: numpy.array: shape: (number of features, feature dimension), suggested dimension: <2500,
+        otherwise it may take a long time
         :return:
         """
-        projected = PCA(n_component).fit_transform(features)
-        return projected
+        return PCA(svd_solver='randomized', n_components=n_component).fit_transform(features)
 
     @staticmethod
-    def choose_n_component():
+    def choose_n_component(features):
         """
         This function helps to choose the suitable amount of n_component(dimensions)
         The more cumulative explained variance the better, but we need to find a trade off
         between dimension and variance.
         Note: x-axis maximum = min(feature number, feature dimension)
-        :return: dict: {number of component: cumulative explained variance}
+        Example: features: (27352, 2500), According to the visualize_dimension_reduction_pca notetbook
+        1) n_components = [6, 9, 16, 35, 102, 588] explains [0.75, 0.8, 0.85, 0.9, 0.95, 0.99]
+        of explained variance
+        2) Reconstruction of the image shows we need at least 102 dimensions(0.95) to recognize the gestures with human eyes
+        :param features: numpy.array: shape: (number of features, feature dimension), suggested dimension: <2500
+        :return: numpy.array: [cumulative explained variance]
         """
-        pca = PCA().fit(train_features)  # n=21 0.80; n=57, 0.9; n=111, 0.95; n=284, 0.99
-        x = np.cumsum(pca.explained_variance_ratio_)
-        plt.plot(x)
-        plt.xlabel('number of components')
-        plt.ylabel('cumulative explained variance')
-        plt.savefig('pca.png')
-        return {index: value for index, value in enumerate(x)}
-
-    @staticmethod
-    def visualize_top_2_dimension(features_after_pca, labels):
-        """
-        Visualize top 2(most representative) dimensions of the features after pca
-        to get an idea of the data. TODO: Is there software to see more dimensions?
-        """
-        plt.scatter(features_after_pca[:, 0], features_after_pca[:, 1],
-                    c=np.array(labels), edgecolor='none', alpha=0.5,
-                    cmap=plt.cm.get_cmap('Accent', 10))
-        plt.xlabel('component 1')
-        plt.ylabel('component 2')
-        plt.colorbar()
-        plt.savefig('component.png')
+        pca = PCA(svd_solver='randomized').fit(features)
+        return np.cumsum(pca.explained_variance_ratio_)
 
 
 if __name__ == "__main__":
-    train_features, train_labels = read_features_labels('../dataset/sign_mnist_train.csv')
+    from utils.read import read_data
+    train_features, train_labels = read_data('../dataset/train', flatten=1, grayscale=1, resize=(50, 50))
     train_features = np.array(train_features)
-    DimensionReduction.choose_n_component()
-    projected = DimensionReduction.pca(n_component=57, features=train_features)
-    DimensionReduction.visualize_top_2_dimension(projected, train_labels)
+    projected = DimensionReduction.pca(102, train_features)
 
 
 
