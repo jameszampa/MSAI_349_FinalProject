@@ -26,9 +26,9 @@ class DimensionReduction:
     @staticmethod
     def pca(n_component, features):
         """
-        :param n_component: number of dimension after reduction,
+        :param n_component: number of dimension after reduction
         :param features: numpy.array: shape: (number of features, feature dimension), suggested dimension: <2500,
-        otherwise it may take a long time
+        otherwise it may take a long execution time
         :return:
         """
         return PCA(svd_solver='randomized', n_components=n_component).fit_transform(features)
@@ -37,14 +37,16 @@ class DimensionReduction:
     def choose_n_component(features):
         """
         This function helps to choose the suitable amount of n_component(dimensions)
-        The more cumulative explained variance the better, but we need to find a trade off
+        The more cumulative explained variance the better, but we also need to find a trade-off
         between dimension and variance.
-        Note: x-axis maximum = min(feature number, feature dimension)
-        Example: features: (27352, 2500), According to the visualize_dimension_reduction_pca notetbook
+        Example: features: (27352, 2500), According to the visualize_dimension_reduction notebook
         1) n_components = [6, 9, 16, 35, 102, 588] explains [0.75, 0.8, 0.85, 0.9, 0.95, 0.99]
-        of explained variance
-        2) Reconstruction of the image shows we need at least 102 dimensions(0.95) to recognize the gestures with human eyes
-        :param features: numpy.array: shape: (number of features, feature dimension), suggested dimension: <2500
+        of variance
+        2) The reconstruction of the images shows that we need at least 102 dimensions(0.95 of variance) to recognize
+        the gestures with human eyes
+
+        :param features: numpy.array: shape: (number of features, feature dimension), suggested dimension: <2500,
+        otherwise it may take a long execution time
         :return: numpy.array: [cumulative explained variance]
         """
         pca = PCA(svd_solver='randomized').fit(features)
