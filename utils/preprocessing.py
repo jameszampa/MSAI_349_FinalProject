@@ -23,15 +23,35 @@ def dimension_scaling(features):
 
 class DimensionReduction:
 
-    @staticmethod
-    def pca(n_component, features):
+    def __init__(self, features, n_component=None):
+        self.pca = PCA(svd_solver='randomized', n_components=n_component).fit(features)
+        self.component_variance = np.cumsum(self.pca.explained_variance_ratio_)
+
+    def pca_transform(self, features):
         """
+        Transform the features to reduced dimensionality
         :param n_component: number of dimension after reduction
         :param features: numpy.array: shape: (number of features, feature dimension), suggested dimension: <2500,
         otherwise it may take a long execution time
-        :return:
+        :return: features with reduced dimensionality
         """
-        return PCA(svd_solver='randomized', n_components=n_component).fit_transform(features)
+        return self.pca.transform(features)
+
+    def get_variance_fraction_by_n_component(self, n_component):
+        """
+        Evaluate how representative is the number of n components of the original features, range is 0-1
+        :param n_component: number of dimension after reduction
+        :return: percentage: the percentage of explained variance, range is 0-1
+        """
+        return round(self.component_variance[n_component - 1], 2)
+
+    def get_n_component_by_variance_threshold(self, variance_threshold):
+        """
+        Given an ideal variance threshold, find the minimal n_component
+        :param variance_threshold: the percentage of explained variance, range is 0-1
+        :return: int: n_component
+        """
+        return np.argmax(self.component_variance > variance_threshold)
 
     @staticmethod
     def choose_n_component(features):
@@ -57,13 +77,11 @@ if __name__ == "__main__":
     from utils.read import read_data
     train_features, train_labels = read_data('../dataset/train', flatten=1, grayscale=1, resize=(50, 50))
     train_features = np.array(train_features)
-    projected = DimensionReduction.pca(102, train_features)
-
-
-
-
-
-
+    pca = DimensionReduction(train_features,None)
+    percentage_of_variance = pca.get_variance_fraction_by_n_component(102)
+    test_n_component = pca.get_n_component_by_variance_threshold(0.9)
+    print (percentage_of_variance, test_n_component)
+    projected = pca.pca_transform(train_features)
 
 
 
