@@ -2,13 +2,20 @@ import math
 
 
 class Bayes_Classifier:
-    def __init__(self, feature_type, width=60, height=60, landmark_weight=1000):
+    def __init__(self, feature_type, width=250, height=250, prob_type="individual", kernel_size=9, kernel_decay_method="distance"):
         self.model = {}
         self.class_probabilities = {}
         self.feature_type = feature_type
         self.width = width
         self.height = height
-        self.landmark_weight = landmark_weight
+        self.landmark_weight = self.width * self.height
+        # Individual: Creates individual probability distributions for each keypoint
+        # Collective: Creates a collective probability distribution for all keypoints
+        self.prob_type = prob_type
+        self.kernel_size = kernel_size
+        # Distance: Kernel weights are inversely proportional to distance from center
+        # None: same as center weight
+        self.kernel_decay_method = kernel_decay_method
     
 
     def _clap(self, x, y):
@@ -23,16 +30,12 @@ class Bayes_Classifier:
         return x, y
 
 
-    def _preprocess_landmarks(self, dataset):
-        # Landmarks are 0-1 normalized X, Y coordinates
-        # Lets make a 200x200 grid and count the number of landmarks in each cell
-        # We will use this as our feature vector
-        # We then want to create a probability distribution for the probability of seeing a landmark in each cell
-        
-        # Dataset is a pandas DataFrame
-        # Get number of unique labels
-        unique_labels = dataset['label'].unique()
+    def _dist(self, p1, p2):
+        return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
+
+    def _preprocess_landmarks_collective(self, dataset):
+        unique_labels = dataset['label'].unique()
         for label in unique_labels:
             self.model[label] = {}
             for i in range(self.width):
@@ -47,6 +50,19 @@ class Bayes_Classifier:
                 y = int(dataset[f"keypoint{i+1}_y"][idx] * self.height)
                 x, y = self._clap(x, y)
                 self.model[label][(x, y)] += self.landmark_weight
+                if self.kernel_size > 1:
+                    # kernel_size centered around (x, y)
+                    for j in range(-self.kernel_size // 2, self.kernel_size // 2 + 1):
+                        for k in range(-self.kernel_size // 2, self.kernel_size // 2 + 1):
+                            x1 = x + j
+                            y1 = y + k
+                            x1, y1 = self._clap(x1, y1)
+                            if x1 == x and y1 == y:
+                                continue
+                            if self.kernel_decay_method == "distance":
+                                self.model[label][(x1, y1)] += self.landmark_weight / self._dist((x, y), (x1, y1))
+                            else:
+                                self.model[label][(x1, y1)] += self.landmark_weight
         
         for label in unique_labels:
             total = 0
@@ -65,6 +81,63 @@ class Bayes_Classifier:
         for label in unique_labels:
             self.class_probabilities[label] /= len(dataset)
         return
+    
+    def _preprocess_landmarks_individual(self, dataset):
+        unique_labels = dataset['label'].unique()
+        for label in unique_labels:
+            self.model[label] = {}
+            for i in range(21):
+                self.model[label][i] = {}
+                for j in range(self.width):
+                    for k in range(self.height):
+                        # Initialize to 1 to avoid 0 probabilities
+                        self.model[label][i][(j, k)] = 1
+        
+        for idx in dataset.index:
+            label = dataset["label"][idx]
+            for i in range(21):
+                x = int(dataset[f"keypoint{i+1}_x"][idx] * self.width)
+                y = int(dataset[f"keypoint{i+1}_y"][idx] * self.height)
+                x, y = self._clap(x, y)
+                self.model[label][i][(x, y)] += self.landmark_weight
+                if self.kernel_size > 1:
+                    # kernel_size centered around (x, y)
+                    for j in range(-self.kernel_size // 2, self.kernel_size // 2 + 1):
+                        for k in range(-self.kernel_size // 2, self.kernel_size // 2 + 1):
+                            x1 = x + j
+                            y1 = y + k
+                            x1, y1 = self._clap(x1, y1)
+                            if x1 == x and y1 == y:
+                                continue
+                            if self.kernel_decay_method == "distance":
+                                self.model[label][i][(x1, y1)] += self.landmark_weight / self._dist((x, y), (x1, y1))
+                            else:
+                                self.model[label][i][(x1, y1)] += self.landmark_weight
+        
+        for label in unique_labels:
+            for i in range(21):
+                total = 0
+                for j in range(self.width):
+                    for k in range(self.height):
+                        total += self.model[label][i][(j, k)]
+                for j in range(self.width):
+                    for k in range(self.height):
+                        self.model[label][i][(j, k)] /= total
+        
+        for label in unique_labels:
+            self.class_probabilities[label] = 0
+        for idx in dataset.index:
+            label = dataset["label"][idx]
+            self.class_probabilities[label] += 1
+        for label in unique_labels:
+            self.class_probabilities[label] /= len(dataset)
+        return
+
+    def _preprocess_landmarks(self, dataset):
+        if self.prob_type == "collective":
+            self._preprocess_landmarks_collective(dataset)
+        elif self.prob_type == "individual":
+            self._preprocess_landmarks_individual(dataset)
 
 
     def _preprocess_pixels(self, dataset):
@@ -89,7 +162,7 @@ class Bayes_Classifier:
         for label in unique_labels:
             self.class_probabilities[label] /= len(features)
         return
-    
+
 
     def _classify_pixels(self, dataset):
         features, labels = dataset[0], dataset[1]
@@ -107,7 +180,7 @@ class Bayes_Classifier:
         return preds
     
 
-    def _classify_landmarks(self, dataset):
+    def _classify_landmarks_collective(self, dataset):
         unique_labels = dataset['label'].unique()
 
         for idx in dataset.index:
@@ -124,6 +197,33 @@ class Bayes_Classifier:
             max_label = max(ps, key=ps.get)
             dataset.at[idx, "predicted_label"] = max_label
         return dataset
+    
+
+    def _classify_landmarks_individual(self, dataset):
+        unique_labels = dataset['label'].unique()
+
+        for idx in dataset.index:
+            ps = {}
+            for label in unique_labels:
+                p = 1
+                for i in range(21):
+                    x = int(dataset[f"keypoint{i+1}_x"][idx] * self.width)
+                    y = int(dataset[f"keypoint{i+1}_y"][idx] * self.height)
+                    x, y = self._clap(x, y)
+                    p += math.log(self.model[label][i][(x, y)])
+                p *= self.class_probabilities[label]
+                ps[label] = p
+            max_label = max(ps, key=ps.get)
+            dataset.at[idx, "predicted_label"] = max_label
+        return dataset
+    
+
+    def _classify_landmarks(self, dataset):
+        if self.prob_type == "collective":
+            preds = self._classify_landmarks_collective(dataset)
+        elif self.prob_type == "individual":
+            preds = self._classify_landmarks_individual(dataset)
+        return preds
 
 
     def train(self, dataset):
