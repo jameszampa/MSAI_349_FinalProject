@@ -2,6 +2,7 @@ import os
 import cv2
 import json
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 
 
@@ -43,6 +44,8 @@ def read_data(dir_path, flatten=0, grayscale=0, resize=None):
                     # Grayscale
                     if grayscale:
                         image = cv2.imread(img_path, 0)
+                        # histogram equalization
+                        image = cv2.equalizeHist(image)
                     else:
                         image = cv2.imread(img_path)
                     # Resize
@@ -53,7 +56,7 @@ def read_data(dir_path, flatten=0, grayscale=0, resize=None):
                         image = image.flatten()
                     features.append(image)
                     labels.append(class_relative_dir)
-    return features, labels
+    return np.array(features), np.array(labels)
 
 
 def read_features_labels(file_path):

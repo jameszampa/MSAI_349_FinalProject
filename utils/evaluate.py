@@ -1,3 +1,4 @@
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
@@ -8,34 +9,44 @@ def evaluate(model_name, ground_truth, predictions):
     print("Test model prediction: ", predictions)
 
     # Calculate precision, recall and f1 for each class
-    labels = list(set(predictions))
+    labels = sorted(list(set(ground_truth)))
     precision_each_class = precision_score(ground_truth, predictions, average=None, labels=labels)
     recall_each_class = recall_score(ground_truth, predictions, average=None, labels=labels)
     f1_each_class = f1_score(ground_truth, predictions, average=None, labels=labels)
+    precision_sum = 0
+    recall_sum = 0
+    f1_sum = 0
     for class_label, prec, rec, f1 in zip(labels, precision_each_class, recall_each_class, f1_each_class):
         print(f"Class: {class_label}, Precision: {prec:.2f}, Recall: {rec:.2f}, F1: {f1:.2f}")
+        precision_sum += prec
+        recall_sum += rec
+        f1_sum += f1
 
     # Calculate average precision, recall and f1
-    avg_precision = precision_score(ground_truth, predictions, average='micro')
-    avg_recall = recall_score(ground_truth, predictions, average='micro')
-    avg_f1 = f1_score(ground_truth, predictions, average='micro')
+    avg_precision = precision_sum / len(labels)
+    avg_recall = recall_sum / len(labels)
+    avg_f1 = f1_sum / len(labels)
     print("\nAverage precision:", avg_precision)
     print("Average recall:", avg_recall)
     print("Average F1 Score:", avg_f1)
 
     # Plot the confusion matrix
     cm = confusion_matrix(ground_truth, predictions)
-    sns.heatmap(cm, annot=True)
+    cm = pd.DataFrame(cm, index=labels, columns=labels)
+    plt.figure(figsize=(40, 35))
+    params = {'axes.labelsize': 30, 'axes.titlesize': 30, 'font.size': 20, 'legend.fontsize': 20,
+              'xtick.labelsize': 20, 'ytick.labelsize': 20}
+    plt.rcParams.update(params)
+    sns.heatmap(cm, annot=True, linewidths=1, fmt='g')
     plt.xlabel('Predicted')
     plt.ylabel('Actual')
+    plt.title('Confusion Matrix')
     plt.savefig('confusion_matrix_' + str(model_name) + '.png')
     return avg_precision, avg_recall, avg_f1
 
 
 if __name__ == "__main__":
-    ground_truth = [6, 5, 10, 0, 3, 21, 10, 14, 3, 7, 8, 8, 21, 12, 7, 4, 22, 0, 7, 7, 2, 0, 21, 4, 10, 15, 2, 15, 7, 1, 7, 8, 13, 19,
-     3, 21, 13, 3, 18, 14, 15, 23, 8, 15, 14, 5, 17, 4, 19, 13]
-    predictions = [11, 19, 4, 19, 16, 15, 19, 2, 11, 18, 18, 18, 10, 3, 16, 18, 18, 23, 8, 14, 5, 6, 18, 11, 22, 1, 5, 18, 14, 20, 16,
-     20, 18, 13, 1, 3, 0, 1, 18, 1, 18, 18, 18, 10, 19, 14, 18, 18, 12, 18]
+    ground_truth = ["a", "b", "c", "d"]
+    predictions = ["b", "b", "d", "d"]
     avg_precision, avg_recall, avg_f1 = evaluate('id3', ground_truth, predictions)
 
