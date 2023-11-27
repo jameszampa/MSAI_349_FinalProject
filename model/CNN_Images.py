@@ -1,4 +1,5 @@
 from utils.read import read_data
+from utils.evaluate import evaluate
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -121,16 +122,18 @@ def predict(model, test_loader):
         for i, (inputs, labels) in enumerate(test_loader):
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
-            _, predicted = torch.max(outputs.data, 1)
+            probabilities = F.softmax(outputs, dim=1)
+            _, predicted = torch.max(probabilities, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             pred_labels.extend(predicted.cpu().numpy())
             true_labels.extend(labels.cpu().numpy())
-    accuracy = accuracy_score(true_labels, pred_labels)
+    '''accuracy = accuracy_score(true_labels, pred_labels)
     precision = precision_score(true_labels, pred_labels, average='weighted')
     recall = recall_score(true_labels, pred_labels, average='weighted')
-    f1 = f1_score(true_labels, pred_labels, average='weighted')
-    print(f'Accuracy: {accuracy*100:.2f}%, Precision: {precision:.2f}, Recall: {recall:.2f}, F1 Score: {f1:.2f}')
+    f1 = f1_score(true_labels, pred_labels, average='weighted')'''
+    precision,recall,f1=evaluate('cnn_images',true_labels,pred_labels)
+    print(f'Precision: {precision:.2f}, Recall: {recall:.2f}, F1 Score: {f1:.2f}')
 
 def main():
     # Load the full training dataset
