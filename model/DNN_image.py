@@ -47,7 +47,7 @@ class SimpleImageClassifier(nn.Module):
         self.fc4 = nn.Linear(84, 26) #26 classes
 
     def forward(self, x):
-        #x = self.flatten(x)
+        # x = self.flatten(x)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
@@ -120,15 +120,17 @@ def predict(model, test_loader):
             correct += (predicted == labels).sum().item()
             pred_labels.extend(predicted.cpu().numpy())
             true_labels.extend(labels.cpu().numpy())
-    precision,recall,f1=evaluate('cnn_images',true_labels,pred_labels)
+    precision,recall,f1=evaluate('DNN_images',true_labels,pred_labels)
     print(f'Precision: {precision:.2f}, Recall: {recall:.2f}, F1 Score: {f1:.2f}')
 
 
 
-def main():
+def DNN_image():
     # Load the full training dataset
-    full_train_dataset = CustomDataset("../dataset/train")
-    test_dataset = CustomDataset("../dataset/test")
+    # Change the path based on your local folder
+    full_train_dataset = CustomDataset("/Users/jeongyoon/Desktop/GitBlog/MSAI_349_FinalProject-1/dataset/train")
+    
+    test_dataset = CustomDataset("/Users/jeongyoon/Desktop/GitBlog/MSAI_349_FinalProject-1/dataset/test")
 
     # Calculate the sizes for training and validation sets (80-20 split)
     train_size = int(0.8 * len(full_train_dataset))
@@ -158,7 +160,7 @@ def main():
     predict(net, test_loader)
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
 
 
