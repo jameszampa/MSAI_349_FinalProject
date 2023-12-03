@@ -84,6 +84,20 @@ if __name__ == "__main__":
     projected = pca.pca_transform(train_features)
 
 
+def run_preprocessing():
+    from utils.read import read_data
+    train_features, train_labels = read_data('/Users/jeongyoon/Desktop/GitBlog/MSAI_349_FinalProject-1/dataset/train_binary', flatten=1, grayscale=1, resize=(28, 28))
+    train_features = np.array(train_features)
+    test_features, test_labels  =read_data('/Users/jeongyoon/Desktop/GitBlog/MSAI_349_FinalProject-1/dataset/test_binary', flatten=1, grayscale=1, resize=(28, 28))
+    test_features = np.array(test_features)
+    
+    pca = DimensionReduction(train_features,None)
+    percentage_of_variance = pca.get_variance_fraction_by_n_component(102)
+    test_n_component = pca.get_n_component_by_variance_threshold(0.9)
+    print (percentage_of_variance, test_n_component)
+    train_pca = pca.pca_transform(train_features)
+    test_pca = pca.pca_transform(test_features)
+    return train_pca, test_pca , train_labels , test_labels
 
 
 
