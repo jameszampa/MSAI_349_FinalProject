@@ -10,18 +10,11 @@ import torch.nn.functional as F
 from utils.evaluate import evaluate
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-class CustomDataset(Dataset):
-    def __init__(self, dir_path, resize=(28,28)):
-        self.images, self.labels = self.load_data(dir_path, resize)
-        self.labels = self.convert_alpha_to_num(self.labels)
-
-    def load_data(self, dir_path, resize):
-        images, labels = read_data(dir_path, flatten=1, grayscale=0, resize=resize)
-        images_np = np.stack(images, axis=0)
-        images_tensor = torch.tensor(images_np).float()
-        #images_tensor = images_tensor.permute(0, 3, 1, 2)
-        return images_tensor, labels
+    
+class CustomDatasetForPCA(Dataset):
+    def __init__(self, images, labels):
+        self.images = images_tensor = torch.tensor(images).float()
+        self.labels = self.convert_alpha_to_num(labels)
 
     def convert_alpha_to_num(self, labels):
         flattened_labels = [label[0] for label in labels]
@@ -35,13 +28,13 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         image = self.images[idx]
         label = self.labels[idx]
-        return image, label
+        return image, label    
 
 # Model architecture
 class SimpleImageClassifier(nn.Module):
     def __init__(self):
         super(SimpleImageClassifier, self).__init__()
-        self.fc1=nn.Linear(784*3, 784)
+        self.fc1=nn.Linear(784, 784)
         self.fc2 = nn.Linear(784, 120)  # 200*200 pixels, RGB three channel
         self.fc3 = nn.Linear(120, 84)
         self.fc4 = nn.Linear(84, 26) #26 classes
@@ -62,6 +55,7 @@ def fit(model, criterion, optimizer, train_loader,valid_loader, num_epochs=10,pa
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
+        print("epochs : ", epoch)
         for i, (inputs, labels) in enumerate(train_loader):
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -120,18 +114,17 @@ def predict(model, test_loader):
             correct += (predicted == labels).sum().item()
             pred_labels.extend(predicted.cpu().numpy())
             true_labels.extend(labels.cpu().numpy())
-    precision,recall,f1=evaluate('DNN_images',true_labels,pred_labels)
+    precision,recall,f1=evaluate('DNN_binary_images',true_labels,pred_labels)
     print(f'Precision: {precision:.2f}, Recall: {recall:.2f}, F1 Score: {f1:.2f}')
 
 
 
-def DNN_image():
+def DNN_image_binary(pca_train , pca_test, train_label, test_label):
     # Load the full training dataset
     # Change the path based on your local folder
-    full_train_dataset = CustomDataset("/Users/jeongyoon/Desktop/GitBlog/MSAI_349_FinalProject-1/dataset/train")
-    
-    test_dataset = CustomDataset("/Users/jeongyoon/Desktop/GitBlog/MSAI_349_FinalProject-1/dataset/test")
-
+  
+    full_train_dataset = CustomDatasetForPCA(pca_train, train_label)
+    test_dataset = CustomDatasetForPCA(pca_test, test_label)
     # Calculate the sizes for training and validation sets (80-20 split)
     train_size = int(0.8 * len(full_train_dataset))
     val_size = len(full_train_dataset) - train_size
@@ -139,28 +132,23 @@ def DNN_image():
     # Split the dataset into training and validation sets
     train_dataset, val_dataset = random_split(full_train_dataset, [train_size, val_size])
 
-
     # Create data loaders for the training and validation sets
-    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=0)
-    val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=0)
-    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False, num_workers=0)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, num_workers=0)
 
 
 
     # Initialize the model, loss criterion, and optimizer
     net = SimpleImageClassifier().to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001)
+    optimizer = optim.Adam(net.parameters(), lr=0.001)
 
     print("In training")
     # Train the model using the training and validation loaders
-    net=fit(net, criterion, optimizer, train_loader, val_loader, num_epochs=100,patience=10)
+    net=fit(net, criterion, optimizer, train_loader, val_loader, num_epochs=100,patience=15)
     print("In testing")
     # Evaluate the model on the test set
     predict(net, test_loader)
-
-
-# if __name__ == '__main__':
-#     main()
 
 
