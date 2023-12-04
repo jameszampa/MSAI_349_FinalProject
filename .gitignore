@@ -3,3 +3,4 @@ hand_landmarks.json
 utils/__pycache__
 model/__pycache__
 SignLanguageClassification
+yolov5
