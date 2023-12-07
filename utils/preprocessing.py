@@ -1,3 +1,4 @@
+import cv2
 import math
 import numpy as np
 from sklearn.decomposition import PCA
@@ -19,6 +20,15 @@ def dimension_scaling(features):
         std_dev = math.sqrt(variance)
         f = [(x-mean)/std_dev for x in f]
     return features
+
+
+def get_color_histogram(images):
+    histogram_list = []
+    for image in images:
+        # Calculate the histogram
+        histogram = cv2.calcHist([image], [0], None, [256], [0, 256])
+        histogram_list.append(np.squeeze(histogram))
+    return np.array(histogram_list)
 
 
 class DimensionReduction:

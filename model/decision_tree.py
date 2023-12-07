@@ -34,7 +34,7 @@ class ID3:
         """
         # Create a node t for the tree
         t = Node()
-        examples = Helper.fix_missing_values(examples)
+        # examples = Helper.fix_missing_values(examples)
         # Label t with the most common value of the target attribute in the examples
         t.label = Helper.get_most_common_value(examples)
         # If all examples are the same class return t
@@ -49,6 +49,7 @@ class ID3:
         best_attribute, best_attribute_values = Helper.get_best_attribute(examples)
         # Assign t the decision attribute A
         t.attribute = best_attribute
+        print (best_attribute)
         # For each possible value "a" in A do
         for best_attribute_value in best_attribute_values:
             # Add a new tree branch below t corresponding to the test A = a
@@ -67,6 +68,7 @@ class ID3:
                     item.pop(best_attribute)
                 t.children[best_attribute_value] = ID3.ID3(examples_a_copy)
         # return the tree
+        print (t)
         return t
 
     @staticmethod
@@ -428,6 +430,7 @@ class Prune:
             # bad pruning: roll back the node
             node.children = node_children
             node.label = node_label
+        print(node)
         return node
 
     @staticmethod
@@ -449,28 +452,5 @@ class Prune:
             print("pruning test failed -- no tree returned.")
 
 
-def prepare_data():
-    train_df = read_df('../sign_mnist_train_tiny.csv')
-    test_df = read_df('../sign_mnist_test_tiny.csv')
-    # Transform data
-    train_data = [dict(zip(train_df.columns, row)) for row in train_df.values]
-    for row in test_df.values:
-        a = dict(zip(test_df.columns[1:], row[1:]))
-    test_data = [dict(zip(test_df.columns[1:], row[1:])) for row in test_df.values]
-    test_label = [row[0] for row in test_df.values]
-    return train_data, test_data, test_label
 
-
-if __name__ == '__main__':
-    # Load data
-    train_data, test_data, test_label = prepare_data()
-    # Train
-    tree = ID3.ID3(train_data)
-    # Test
-    predictions = []
-    for test_feature in test_data:
-        pred = ID3.evaluate(tree, test_feature)
-        predictions.append(pred)
-    # Evaluate
-    precision, recall, f1 = evaluate('id3', test_label, predictions)
 

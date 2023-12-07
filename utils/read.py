@@ -8,9 +8,9 @@ from sklearn.model_selection import train_test_split
 
 def read_landmarks(json_file_path):
     """
-    Read landmarks from json file.
+    Read landmarks.json from json file.
     :param json_file_path: json file path
-    :return: landmarks list
+    :return: landmarks.json list
     """
     with open(json_file_path) as f:
         data = json.load(f)
@@ -22,7 +22,7 @@ def read_df(file_path):
     return df
 
 
-def read_data(dir_path, flatten=0, grayscale=0, resize=None):
+def read_data(dir_path, flatten=0, grayscale=0, resize=None, binary=0):
     """
     read data into features, labels
     :param dir_path: "../dataset/test"
@@ -45,12 +45,16 @@ def read_data(dir_path, flatten=0, grayscale=0, resize=None):
                     if grayscale:
                         image = cv2.imread(img_path, 0)
                         # histogram equalization
-                        image = cv2.equalizeHist(image)
+                        # image = cv2.equalizeHist(image)
                     else:
                         image = cv2.imread(img_path)
                     # Resize
                     if resize:
                         image = cv2.resize(image, resize)
+                    # Binary
+                    if binary:
+                        threshold = 127.5
+                        image = (image >= threshold).astype(int)
                     # Flatten
                     if flatten:
                         image = image.flatten()
