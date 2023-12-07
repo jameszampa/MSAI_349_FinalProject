@@ -10,11 +10,11 @@ def main():
     # DNN_landmark()
 
     #binary image with PCA
-    # train_pca , test_pca, train_labels , test_labels = run_preprocessing()
-    # DNN_image_binary(train_pca, test_pca, train_labels , test_labels)
+    train_pca , test_pca, train_labels , test_labels = run_preprocessing()
+    DNN_image_binary(train_pca, test_pca, train_labels , test_labels)
 
     # YOLO_preprocessing()
-    CNN_image_YOLO()
+    # CNN_image_YOLO()
 
 
 if __name__ == "__main__":
