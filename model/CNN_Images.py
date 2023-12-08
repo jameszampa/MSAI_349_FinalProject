@@ -19,6 +19,7 @@ class CustomDataset(Dataset):
         self.images, self.labels = self.load_data(dir_path, resize)
         self.labels = self.convert_alpha_to_num(self.labels)
 
+
     def load_data(self, dir_path, resize):
         images, labels = read_data(dir_path, flatten=0, grayscale=0, resize=resize)
         images_np = np.stack(images, axis=0)
@@ -50,6 +51,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(784, 120)  # Adjust input size to match your data
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 26)  # Adjust the output size to match the number of classes
+        self.dropout = nn.Dropout(p=0.3)
 
     def forward(self, x):
         # Define the forward pass
@@ -57,7 +59,9 @@ class Net(nn.Module):
         x = self.pool(F.relu(self.conv2(x)))
         x = x.reshape(-1,784)  # Flatten the tensor for the fully connected layer
         x = F.relu(self.fc1(x))
+        x = self.dropout(x)  # Apply dropout
         x = F.relu(self.fc2(x))
+        x = self.dropout(x)
         x = self.fc3(x)
         return x
 
@@ -158,7 +162,7 @@ def main():
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
     # Train the model using the training and validation loaders
-    net=fit(net, criterion, optimizer, train_loader, val_loader, num_epochs=50,patience=5)
+    net=fit(net, criterion, optimizer, train_loader, val_loader, num_epochs=100,patience=5)
 
     # Evaluate the model on the test set
     predict(net, test_loader)
