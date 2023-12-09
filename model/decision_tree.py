@@ -1,7 +1,6 @@
 import math
 import copy
-from utils.read import read_df
-from utils.evaluate import evaluate
+import random
 
 
 PRUNING_METHOD = 'REP'  # REP: reduced error pruning, CVP: critical value pruning
@@ -18,7 +17,7 @@ class Node:
 class ID3:
 
     @staticmethod
-    def ID3(examples):
+    def ID3(examples, criterion='information_gain', max_feature_number=None):
         # Use information gain to determine which attribute to split on. Always split on the attribute with the highest information gain.
         # If there are missing values replace them with the most common value for that attribute.
         # If there is zero information gain prefer to split that is non-trival (i.e. one where all examples do not have the same attribute value).
@@ -46,7 +45,7 @@ class ID3:
             return t
         # Otherwise...
         # Let A be the attribute that has the highest information gain
-        best_attribute, best_attribute_values = Helper.get_best_attribute(examples)
+        best_attribute, best_attribute_values = Helper.get_best_attribute(examples, criterion, max_feature_number)
         # Assign t the decision attribute A
         t.attribute = best_attribute
         print (best_attribute)
@@ -207,7 +206,53 @@ class Helper:
         return information_gain
 
     @staticmethod
-    def get_best_attribute(examples):
+    def get_gini_gain(examples, attribute):
+        """
+        get_gini_gain:
+          - examples: a dictionary of attribute:value pairs,
+            and the target class variable is a special attribute with the name "Class"
+          - attribute: the attribute to compute the gini gain on
+        """
+        # Compute the gini impurity of the dataset
+        total_number_of_examples = len(examples)
+        # Computer the number of unique classes
+        unique_classes = set([example[TARGET] for example in examples])
+        # Compute the number of examples for each class
+        number_of_examples_for_each_class = {}
+        for example in examples:
+            if example[TARGET] not in number_of_examples_for_each_class:
+                number_of_examples_for_each_class[example[TARGET]] = 0
+            number_of_examples_for_each_class[example[TARGET]] += 1
+        # Compute the gini impurity of the dataset
+        gini_impurity = 0
+        for unique_class in unique_classes:
+            probability = number_of_examples_for_each_class[unique_class] / total_number_of_examples
+            gini_impurity += 1 - probability**2
+
+        # Find the attribute with the highest gini gain
+        # Compute the number of examples for each value of the attribute
+        number_of_examples_for_each_attribute_value = {}
+        for example in examples:
+            if example[attribute] not in number_of_examples_for_each_attribute_value:
+                number_of_examples_for_each_attribute_value[example[attribute]] = 0
+            number_of_examples_for_each_attribute_value[example[attribute]] += 1
+
+        # Compute the gini gain of the attribute
+        gini_gain = gini_impurity
+        for attribute_value, number_of_examples in number_of_examples_for_each_attribute_value.items():
+            probability = number_of_examples / total_number_of_examples
+            examples_with_attribute_value = [example for example in examples if example[attribute] == attribute_value]
+            gini_of_attribute_value = 0
+            for unique_class in unique_classes:
+                probability_of_class = len([example for example in examples_with_attribute_value if
+                                            example[TARGET] == unique_class]) / number_of_examples
+                if probability_of_class != 0:
+                    gini_of_attribute_value += 1 - probability_of_class**2
+            gini_gain -= probability * gini_of_attribute_value
+        return gini_gain
+
+    @staticmethod
+    def get_best_attribute(examples, criterion, max_feature_number=None):
         """
         get_best_attribute:
           - examples: a dictionary of attribute:value pairs,
@@ -221,14 +266,22 @@ class Helper:
                 unique_attributes.add(key)
 
         best_attribute = None
-        best_information_gain = 0
-        for attribute in unique_attributes:
+        best_gain = 0
+        if max_feature_number:
+            feature_number = min(max_feature_number, len(unique_attributes))
+            attributes_list = random.sample(unique_attributes, feature_number)
+        else:
+            attributes_list = unique_attributes
+        for attribute in attributes_list:
             if attribute == TARGET:
                 continue
-            info_gain = Helper.get_information_gain(examples, attribute)
-            if info_gain > best_information_gain:
+            if criterion == 'gini_gain':
+                info_gain = Helper.get_gini_gain(examples, attribute)
+            else:
+                info_gain = Helper.get_information_gain(examples, attribute)
+            if info_gain > best_gain:
                 best_attribute = attribute
-                best_information_gain = info_gain
+                best_gain = info_gain
 
         if best_attribute is None:
             # choose attribute that is non-trivial
