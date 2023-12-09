@@ -22,12 +22,32 @@ def dimension_scaling(features):
     return features
 
 
-def get_color_histogram(images):
+def get_color_histogram(images, grayscale=1):
     histogram_list = []
     for image in images:
         # Calculate the histogram
-        histogram = cv2.calcHist([image], [0], None, [256], [0, 256])
-        histogram_list.append(np.squeeze(histogram))
+        if grayscale:
+            histogram = cv2.calcHist([image], [0], None, [256], [0, 256])
+        else:
+            histogram = np.array([])
+            for i in range(3):
+                hist = cv2.calcHist([image], [i], None, [256], [0, 256])
+                histogram = np.concatenate((histogram, np.squeeze(hist)))
+        histogram_list.append(histogram)
+    return np.array(histogram_list)
+
+from matplotlib import pyplot as plt
+
+def get_color_histogram_vis(images):
+    histogram_list = []
+    colors = ('b', 'g', 'r')
+    for image in images:
+        # Calculate the histogram
+        for i,color in enumerate(colors):
+            hist = cv2.calcHist([image], [i], None, [256], [0, 256])
+            plt.plot(hist, color=color)
+        plt.title('Image Histogram')
+        plt.show()
     return np.array(histogram_list)
 
 
@@ -84,15 +104,17 @@ class DimensionReduction:
 
 
 if __name__ == "__main__":
-    from utils.read import read_data
-    train_features, train_labels = read_data('../dataset/train', flatten=1, grayscale=1, resize=(50, 50))
-    train_features = np.array(train_features)
-    pca = DimensionReduction(train_features,None)
-    percentage_of_variance = pca.get_variance_fraction_by_n_component(102)
-    test_n_component = pca.get_n_component_by_variance_threshold(0.9)
-    print (percentage_of_variance, test_n_component)
-    projected = pca.pca_transform(train_features)
-
+    # from utils.read import read_data
+    # train_features, train_labels = read_data('../dataset/train', flatten=1, grayscale=1, resize=(50, 50))
+    # train_features = np.array(train_features)
+    # pca = DimensionReduction(train_features,None)
+    # percentage_of_variance = pca.get_variance_fraction_by_n_component(102)
+    # test_n_component = pca.get_n_component_by_variance_threshold(0.9)
+    # print (percentage_of_variance, test_n_component)
+    # projected = pca.pca_transform(train_features)
+    image = cv2.imread('../dataset/examples_F/F4.jpg')
+    # get_color_histogram([image], 0)
+    get_color_histogram_vis([image])
 
 
 

@@ -45,7 +45,7 @@ def read_data(dir_path, flatten=0, grayscale=0, resize=None, binary=0):
                     if grayscale:
                         image = cv2.imread(img_path, 0)
                         # histogram equalization
-                        # image = cv2.equalizeHist(image)
+                        image = cv2.equalizeHist(image)
                     else:
                         image = cv2.imread(img_path)
                     # Resize
