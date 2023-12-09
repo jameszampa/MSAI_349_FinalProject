@@ -4,6 +4,7 @@ from utils.evaluate import evaluate
 from utils.read import read_features_labels
 
 
+
 class Helper:
 
     @staticmethod
@@ -240,6 +241,7 @@ class KNearestNeighbor:
 
         predicted_targets = []
         for i in range(len(features)):
+            print("feature,",i)
             nearest_indices, neighbour_distances = self.find_n_nearest(features[i], ignore_first)
             predicted_target = self.find_aggregator(self.targets[nearest_indices], neighbour_distances)
             predicted_targets.append(predicted_target)
@@ -248,14 +250,16 @@ class KNearestNeighbor:
 
 if __name__ == '__main__':
     # Load dataset
-    train_features, train_labels = read_features_labels('../sign_mnist_train_tiny.csv')
-    test_features, test_labels = read_features_labels('../sign_mnist_test_tiny.csv')
+    train_features, train_labels = read_features_labels('../dataset/train_landmarks.csv')
+    test_features, test_labels = read_features_labels('../dataset/test_landmarks.csv')
     # Train
     metric = 'cosim'
     classifier = KNearestNeighbor(n_neighbors=3, distance_measure=metric, aggregator="mode")
     classifier.fit(train_features, train_labels)
     # Test
-    predictions = [i[0] for i in classifier.predict(test_features)]
+    print("in test")
+    predictions_list=classifier.predict(test_features)
+    predictions = [i[0] for i in predictions_list]
     # Evaluate
     evaluate('knn', test_labels, predictions)
 
